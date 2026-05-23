@@ -38,6 +38,7 @@
             cursor: pointer;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             transition: background-color 0.3s;
+            z-index: 20; /* Keeps button clickable above everything */
         }
 
         #bait-btn:hover {
@@ -51,6 +52,7 @@
             max-height: 100vh;
             object-fit: contain;
             z-index: 10;
+            position: absolute; /* Keeps it centered over the broken glass background */
         }
     </style>
 </head>
@@ -62,15 +64,20 @@
 
     <script>
         // --- CONFIGURATION ---
-        const totalImages = 10; // Update this to match your total number of "what" images
+        const totalImages = 18; // Your total number of images
+        const cooldownLimit = 6; // Number of images to remember before repeating
 
         // --- ELEMENTS ---
         const btn = document.getElementById('bait-btn');
         const img = document.getElementById('stone-cold');
         const body = document.body;
         
-        // Pre-load the audio so it plays instantly on click
+        // Pre-load the audio so it plays instantly
         const shatterSound = new Audio('images/glass-shatter.mp3');
+
+        // --- MEMORY BANK (Local Storage) ---
+        // Check the browser's memory for past images, or start an empty list if it's their first visit
+        let recentImages = JSON.parse(localStorage.getItem('stoneColdHistory')) || [];
 
         // --- THE TRAP ---
         btn.addEventListener('click', () => {
@@ -83,8 +90,24 @@
             // 3. Change background to tiled broken glass
             body.classList.add('shattered-bg');
 
-            // 4. Generate random number and show Stone Cold
-            const randomNum = Math.floor(Math.random() * totalImages) + 1;
+            // 4. Pick a random number that is NOT in the recent history
+            let randomNum;
+            do {
+                randomNum = Math.floor(Math.random() * totalImages) + 1;
+            } while (recentImages.includes(randomNum));
+
+            // 5. Add this new number to the history list
+            recentImages.push(randomNum);
+
+            // 6. If the history list is longer than our cooldown (6), remove the oldest memory
+            if (recentImages.length > cooldownLimit) {
+                recentImages.shift(); 
+            }
+
+            // 7. Save this updated history back into the browser's memory
+            localStorage.setItem('stoneColdHistory', JSON.stringify(recentImages));
+
+            // 8. Show the chosen image
             img.src = `images/what-${randomNum}.jpg`;
             img.style.display = 'block';
         });
